@@ -530,9 +530,10 @@ var Attack = {
 
 						break;
 					}
-
-					// Skip non-unique monsters after 15 attacks, except in Throne of Destruction
-					if (me.area !== 131 && !(target.spectype & 0x7) && gidAttack[i].attacks > 15) {
+					
+					if([746, 750, 755, 800, 809, 826, 861, 870, 879, 882, 883, 884].indexOf(target.classid) > -1 && gidAttack[i].attacks > 64) {
+						monsterList.shift();
+					} else if (me.area !== 131 && !(target.spectype & 0x7) && gidAttack[i].attacks > 15) { // Skip non-unique monsters after 15 attacks, except in Throne of Destruction
 						print("ÿc1Skipping " + target.name + " " + target.gid + " " + gidAttack[i].attacks);
 						monsterList.shift();
 					}
@@ -1038,7 +1039,12 @@ var Attack = {
 
 		var i, unit,
 			list = [],
-			ids = ["chest", "chest3", "weaponrack", "armorstand"];
+			ids = ["chest", "loose rock", "hidden stash", "loose boulder", "corpseonstick", "casket", "armorstand", "weaponrack",
+                "holeanim", "tomb2", "tomb3", "roguecorpse", "ratnest", "corpse", "goo pile", "largeurn", "urn", "chest3", "jug", "skeleton",
+                "guardcorpse", "sarcophagus", "object2", "cocoon", "basket", "stash", "hollow log", "hungskeleton", "pillar", "skullpile",
+                "skull pile", "bonechest", "woodchestl", "woodchestr", "burialchestr", "burialchestl",
+                "explodingchest", "chestl", "chestr", "groundtomb", "deadperson",
+                "deadperson2", "evilurn", "tomb1l", "tomb3l", "groundtombl"];
 
 		unit = getUnit(2);
 
@@ -1262,17 +1268,22 @@ var Attack = {
 	},
 
 	skipCheck: function (unit) {
-		if (me.area === 131) {
-			return true;
-		}
+        var nonskip = [750, 752, 809, 883, 746, 879, 882, 755, 870, 861, 884, 826, 800, 744, 799, 747];
+        if (me.area === 131) {
+            return true;
+        }
 
-		if ((unit.spectype & 0x7) && Config.SkipException && Config.SkipException.indexOf(unit.name) > -1) {
-			print("ÿc1Skip Exception: " + unit.name);
-			return true;
-		}
+        if ((unit.spectype & 0x7) && Config.SkipException && Config.SkipException.indexOf(unit.name) > -1) {
+            print("ÿc1Skip Exception: " + unit.name);
+            return true;
+        }
+        
+        if (nonskip.indexOf(unit.classid) > -1){
+            return true;
+        }
 
-		var i, j, rval,
-			tempArray = [];
+        var i, j, rval,
+            tempArray = [];
 
 EnchantLoop: // Skip enchanted monsters
 		for (i = 0; i < Config.SkipEnchant.length; i += 1) {

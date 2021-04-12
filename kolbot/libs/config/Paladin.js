@@ -15,6 +15,7 @@ function LoadConfig() {
 
 	// User addon script. Read the description in libs/bots/UserAddon.js
 	Scripts.UserAddon = true; // !!!YOU MUST SET THIS TO FALSE IF YOU WANT TO RUN BOSS/AREA SCRIPTS!!!
+	Scripts.Manual = false; //Set to true if you want to use "Manual.js" during manual play
 
 	// Battle orders script - Use this for 2+ characters (for example BO barb + sorc)
 	Scripts.BattleOrders = false;
@@ -125,6 +126,31 @@ function LoadConfig() {
 		Config.Baal.SoulQuit = false; // End script if Souls (Burning Souls) are found.
 		Config.Baal.DollQuit = false; // End script if Dolls (Undead Soul Killers) are found.
 		Config.Baal.KillBaal = true; // Kill Baal. Leaves game after wave 5 if false.
+
+	/* PD2 Season 2 Map Script
+	 *
+	 * Map IDs:  "ruinsofviz", "bastionskeep", "horazon'smemory", "phlegethon",
+	 *			 "torajanjungle","arreatbattlefield", "bloodmoon", "riverofblood",
+	 *			 "throneofinsanity", "sewersofharrogath", "ancestraltrial", "tombofzoltunkulle"
+	 * Quality: The quality of map you want to run. If you set it to 2 or 4, stats check will be ignored.
+	 * Monster Types: "Succubus", "Cows", "Dolls", "Vampires", "Reanimated", "Ghosts"
+	 * Sorbskip: This will skip any maps that contains monsters who sorb that element and will reroll map
+	 * MapContains: This will only do maps with that monster, leave empty to turn off. Example: Config.Mapper.MapContains = ""
+	 * SkipMonsters: Will do the opposite of MapContains.
+	 */
+	Scripts.Mapper = false;
+		Config.Mapper.Maps = ["ruinsofviz", "bastionskeep", "horazon'smemory", "phlegethon",
+							  "torajanjungle","arreatbattlefield", "bloodmoon", "riverofblood",
+							  "throneofinsanity", "sewersofharrogath", "ancestraltrial", "tombofzoltunkulle"];
+		Config.Mapper.Quality = 6; //Which quality of map do you want to run? 2 = Normal, 4 = Magic, 6 = Rare
+		Config.Mapper.MagicFind = 0; // Minimum Map Magic Find %
+		Config.Mapper.GoldFind = 0; // Minimum Map Gold Find %
+		Config.Mapper.Density = 0; // Minimum Map Density
+		Config.Mapper.Rarity = 0; // Minimum Monster Rarity
+		Config.Mapper.Experience = 0; // Minimum Map Experience
+		Config.Mapper.MapContains = ["Cows", "Ghosts"]; // If map DOESN'T contain these monsters, it will skip it
+		Config.Mapper.SkipMonsters = ["Dolls", "Succubus"]; //If map contains these monsters, it will skip
+		Config.Mapper.SorbSkip = [""] // If map has monsters that sorb, skip it. Use any of the following: "Magic", "Lightning", "Fire", "Cold"		
 
 	/* ### leeching section ###
 	* Unless stated otherwise, leader's character name isn't needed on order to run.
@@ -272,7 +298,7 @@ function LoadConfig() {
     Config.Inventory[1] = [1,1,1,1,1,1,1,1,1,0];
     Config.Inventory[2] = [1,1,1,1,1,1,1,1,1,0];
     Config.Inventory[3] = [1,1,1,1,1,1,1,1,1,0];
-    Config.Inventory[4] = [0,0,0,0,0,0,0,0,0,0];
+    Config.Inventory[4] = [1,1,1,1,1,1,1,1,1,0];
     Config.Inventory[5] = [0,0,0,0,0,0,0,0,0,0];
     Config.Inventory[6] = [0,0,0,0,0,0,0,0,0,0];
     Config.Inventory[7] = [0,0,0,0,0,0,0,0,0,0];
@@ -298,15 +324,7 @@ function LoadConfig() {
 
 	// Pickit config. Default folder is kolbot/pickit.
 	Config.PickitFiles.push("kolton.nip");
-	Config.PickitFiles.push("LLD.nip");
-	Config.PickitFiles.push("Unid.nip");
-	Config.PickitFiles.push("White.nip");
-	Config.PickitFiles.push("Set.nip");
-	Config.PickitFiles.push("Rare.nip");
-	Config.PickitFiles.push("Misc.nip");
-	Config.PickitFiles.push("Magic.nip");
-	Config.PickitFiles.push("Jewelery.nip");
-	Config.PickitFiles.push("New.nip");
+	Config.PickitFiles.push("redix.nip");
 	Config.PickRange = 40; // Pick radius
 	Config.FastPick = false; // Check and pick items between attacks
 	Config.ManualPlayPick = false; // If set to true and D2BotMap entry script is used, will enable picking in manual play.
@@ -349,7 +367,7 @@ function LoadConfig() {
 	Config.LogHighRunes = true; // Log high runes (Ist - Zod) on item viewer
 	Config.LogLowGems = false; // Log low gems (chipped, flawed, normal) on item viewer
 	Config.LogHighGems = false; // Log high gems (flawless, perfect) on item viewer
-	Config.SkipLogging = []; // Custom log skip list. Set as three digit item code or classid. Example: ["tes", "ceh", 656, 657] will ignore logging of essences.
+	Config.SkipLogging = ["wss"]; // Custom log skip list. Set as three digit item code or classid. Example: ["tes", "ceh", 656, 657] will ignore logging of essences.
 	Config.ShowCubingInfo = true; // Show cubing messages on console
 
 	// Repair settings
@@ -598,6 +616,7 @@ function LoadConfig() {
 	Config.Wereform = false; // 0 / false - don't shapeshift, 1 / "Werewolf" - change to werewolf, 2 / "Werebear" - change to werebear
 
 	// Class specific config
+	Config.UseHolyNova = true;
 	Config.AvoidDolls = false; // Try to attack dolls from a greater distance with hammerdins.
 	Config.Vigor = true; // Swith to Vigor when running
 	Config.Charge = true; // Use Charge when running

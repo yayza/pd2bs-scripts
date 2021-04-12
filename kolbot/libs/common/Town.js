@@ -1436,17 +1436,18 @@ CursorLoop:
 
 					if (chargedItems) {
 						// Charged item check
-						charge = item.getStat(-2)[204];
-
-						if (typeof (charge) === "object") {
-							if (charge instanceof Array) {
-								for (i = 0; i < charge.length; i += 1) {
-									if (charge[i] !== undefined && charge[i].hasOwnProperty("charges") && charge[i].charges * 100 / charge[i].maxcharges <= repairPercent) {
-										itemList.push(copyUnit(item));
+					if(!item.getStat(-2).hasOwnProperty(422)){ // Found 422 Comparing Naj Staff & Enigma...
+							charge = item.getStat(-2)[204];
+							if (typeof (charge) === "object") {
+								if (charge instanceof Array) {
+									for (i = 0; i < charge.length; i += 1) {
+										if (charge[i] !== undefined && charge[i].hasOwnProperty("charges") && charge[i].charges * 100 / charge[i].maxcharges <= repairPercent) {
+											itemList.push(copyUnit(item));
+										}
 									}
+								} else if (charge.charges * 100 / charge.maxcharges <= repairPercent) {
+									itemList.push(copyUnit(item));
 								}
-							} else if (charge.charges * 100 / charge.maxcharges <= repairPercent) {
-								itemList.push(copyUnit(item));
 							}
 						}
 					}
@@ -1920,6 +1921,8 @@ MainLoop:
 
 		for (i = 0; !!items && i < items.length; i += 1) {
 			if ([18, 41, 76, 77, 78].indexOf(items[i].itemType) === -1 && // Don't drop tomes, keys or potions
+					 [106, 107, 108].indexOf(items[i].itemType) === -1 && // Don't drop maps
+					 [118, 120, 121, 122, 123, 124].indexOf(items[i].itemType) === -1 && // Don't drop map ingredients					
 					// Keep some quest items
 					items[i].classid !== 524 && // Scroll of Inifuss
 					items[i].classid !== 525 && // Key to Cairn Stones
@@ -2091,6 +2094,25 @@ MainLoop:
 
 		if (!this.act[me.act - 1].initialized) {
 			this.initialize();
+		}
+
+		// Act 2 Meshif override -
+		// 	Fix interaction trigger with Meshif while he moves around
+		if (me.act === 2 && spot === NPC.Meshif) {
+			Pather.moveTo(5200, 5060, 0);
+			
+			var meshif = getUnit(1, 210); 
+			
+			var prevDistance, distance; 
+			// Waits until Meshif stops walking
+			while((distance = getDistance(me, meshif)) !== prevDistance) { 
+				delay(500);
+				prevDistance = distance;
+			}
+			
+			Pather.walkTo(meshif.x, meshif.y);
+			
+			return true;
 		}
 
 		// Act 5 wp->portalspot override - ActMap.cpp crash

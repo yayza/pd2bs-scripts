@@ -28,15 +28,11 @@ var NodeAction = {
 				Attack.clearList(monList);
 			}
 		}
-		
-		if (Config.ClearPathingUniques) { //
-                              Attack.clear(30); //clear all mobs in 30 yards, no spectype - either this line OR the one above
-        }
 
 		if ((typeof Config.ClearPath === "number" || typeof Config.ClearPath === "object") && arg.clearPath === false) {
 			switch (typeof Config.ClearPath) {
 			case "number":
-				Attack.clear(30, Config.ClearPath);
+				Attack.clear(15, Config.ClearPath);
 
 				break;
 			case "object":
@@ -124,7 +120,7 @@ var Pather = {
 	
 
 	useTeleport: function () {
-		return this.teleport && this.teleCheck() && !Config.NoTele && !me.getState(139) && !me.getState(140) && !me.getState(121) && !me.inTown && !([3, 73, 121, 57, 60].indexOf(me.area) > -1 &&[1, 2].indexOf(me.diff) > -1);
+		return this.teleport && this.teleCheck() && !Config.NoTele && !me.getState(139) && !me.getState(140) && !me.inTown && !([3, 73, 121, 57, 60].indexOf(me.area) > -1 &&[1, 2].indexOf(me.diff) > -1);
 	},
 
 	/*
@@ -136,23 +132,34 @@ var Pather = {
 		pop - remove last node
 	*/
 	
-	teleCheck: function() {
-		
-		var teleSkills = [54, 367, 370],
-		mySkills = me.getSkill(4);
-				
-		for (var i = 0; i < mySkills.length; i++) {
-			if (teleSkills.indexOf(mySkills[i][0]) > -1) {
-					return mySkills[i][0];
-			}
+	teleCheck: function() {	
+		switch(me.classid){
+			case 1:
+				if (me.getSkill(54, 1)){
+					return 54;
+				}
+			case 2:
+				if (me.getSkill(367, 1) && !me.getState(121)){
+					return 367;
+				}
+			case 5:
+				if (me.getSkill(370, 1) && !me.getState(121)){
+					return 370;
+				}
+			default:
+				if(me.getSkill(357, 1, true)) {
+					return 357;
+				} else if (me.getSkill(54, 1, true)){
+					return 54;
+				}				
 		}
 		return false;
-		},
+	},
 	
-	countCharges: function () {
+	countCharges: function (chargedSkill) {
 		var teleItems = this.findTeleItems();
 			for (var i = 0; i < teleItems.length; i++){
-				if (teleItems[i].skill === 54){
+				if (teleItems[i].skill === chargedSkill){
 					return teleItems[i].charges;
 				}
 			}
@@ -235,7 +242,6 @@ var Pather = {
 		
 		useTeleport = this.useTeleport();
 		
-		
 		/* Disabling getPath optimizations, they are causing desync -- noah
 		// Teleport without calling getPath if the spot is close enough
 		if (useTeleport && getDistance(me, x, y) <= this.teleDistance) {
@@ -269,7 +275,11 @@ var Pather = {
 		}
 
 		while (path.length > 0) {
-			useTeleport = this.useTeleport();
+			
+			if(me.classid != 1){ // If sorc, don't keep checking to see if we can use tele
+				useTeleport = this.useTeleport();
+			}
+			
 			if (me.dead) { // Abort if dead
 				return false;
 			}
@@ -286,6 +296,7 @@ var Pather = {
 			/* Right now getPath's first node is our own position so it's not necessary to take it into account
 				This will be removed if getPath changes
 			*/
+			
 			if (getDistance(me, node) > 2) {
 				// Make life in Maggot Lair easier
 				if ([62, 63, 64].indexOf(me.area) > -1) {
@@ -372,34 +383,24 @@ var Pather = {
 		y - the y coord to teleport to
 	*/
 	teleportTo: function (x, y, maxRange) {
-		var i, tick;
+		var i, tick, skillToUse;
 
 		if (maxRange === undefined) {
 			maxRange = 5;
 		}
 
+		skillToUse = this.teleCheck();
+
 MainLoop:
 
-		var skillToUse;
-		switch(me.classid){
-			case 1:
-			case 2:
-			case 5:
-				skillToUse = this.teleCheck();
-				
-				break;
-		}
-
 		for (i = 0; i < 3; i += 1) {
-			if (Config.PacketCasting) {
+			if (me.classid != 1 && (skillToUse == 54 || skillToUse == 357)) {
+				me.castChargedSkill(skillToUse, x, y);
+			} else if (Config.PacketCasting) {
 				Skill.setSkill(skillToUse, 0);
 				Packet.castSkill(0, x, y);
 			} else {
-				if(this.countCharges()){
-					me.castChargedSkill(54, x, y);
-				} else {
-					Skill.cast(skillToUse, 0, x, y);
-				}
+				Skill.cast(skillToUse, 0, x, y);
 			}
 
 
@@ -586,7 +587,7 @@ ModeLoop:
 		var useTeleport = this.useTeleport();
 
 		if (offX === undefined) {
-			if (me.classid != 3) // not paladin
+			if (me.classid != 3 && !me.inTown) // not paladin
 			{
 				if (unit.type === 1) //is monster
 				{
@@ -600,7 +601,7 @@ ModeLoop:
 		}
 
 		if (offY === undefined) {
-			if (me.classid != 3) {
+			if (me.classid != 3 && !me.inTown) {
 				if (unit.type === 1) {
 					offY = 5; //prevent sorc & similar teleporting on top of the target
 				} else {
@@ -649,13 +650,32 @@ ModeLoop:
 		if (area === undefined || unitType === undefined || unitId === undefined) {
 			throw new Error("moveToPreset: Invalid parameters.");
 		}
-
+		var presetUnit = getPresetUnit(area, unitType, unitId);
+		
 		if (offX === undefined) {
-			offX = 0;
+			if (me.classid != 3 && !me.inTown) // not paladin
+			{
+				if (presetUnit.type === 1) //is monster
+				{
+					offX = 5; //prevent sorc & similar teleporting on top of the target
+				} else {
+					offX = 0;
+				}
+			} else {
+				offX = 0;
+			}
 		}
 
 		if (offY === undefined) {
-			offY = 0;
+			if (me.classid != 3 && !me.inTown) {
+				if (presetUnit.type === 1) {
+					offY = 5; //prevent sorc & similar teleporting on top of the target
+				} else {
+					offY = 0;
+				}
+			} else {
+				offY = 0;
+			}
 		}
 
 		if (clearPath === undefined) {
@@ -666,7 +686,7 @@ ModeLoop:
 			pop = false;
 		}
 
-		var presetUnit = getPresetUnit(area, unitType, unitId);
+		
 
 		if (!presetUnit) {
 			throw new Error("moveToPreset: Couldn't find preset unit - id " + unitId);
@@ -1828,7 +1848,25 @@ MainLoop:
 			"Matron's Den",
 			"Fogotten Sands",
 			"Furnace of Pain",
-			"Tristram"];
+			"Tristram",
+			"Unknown Area 137",
+			"Unknown Area 138",
+			"Arreat Battlefield",
+			"Unknown Area 140",
+			"Sewers of Harrogath",
+			"Arcane (Horazon's Memory)",
+			"Ruins of Viz-Jun",
+			"River of Blood",
+			"Phlegathon",
+			"Ancestral Trial",
+			"Unknown Area 147",
+			"Torajan Jungle",
+			"Bastion Keep",
+			"Throne of Insanity",
+			"Throne of Zoltun Kulle",
+			"Cathedral of Light",
+			"Cathedral of Light Basement 1",
+			"Blood Moon" ];
 
 		return areas[area];
 	}
