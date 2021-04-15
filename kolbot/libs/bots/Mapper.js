@@ -9,54 +9,77 @@ function Mapper() {
 	this.start = function (){
 		var items;
 		
-		if(me.diff !== 2){
+		if (me.diff !== 2){
 			print("Must be in Hell Difficulty to open maps.");
 			return false
 		}
 		
-		Town.doChores();
-		
 		items = me.findItems(-1, 0);
+		Town.doChores();		
 		
-		for (var i = 0; i < items.length; i++){
+ 		for (var i = 0; i < items.length; i++){
 			if (this.checkMap(items[i])){
 				this.openMap(items[i]);
 				return true;
 			}
-		}
+		} 
 		
 		this.upgradeMaps();
+		return false;	
+	};
+	
+	this.identifyMaps = function (maps){
+		var tome, identified;
+		
+		tome = me.findItem(519, 0, 3);
+		
+		if (tome && tome.getStat(70) < maps.length) {
+			Town.fillTome(519);
+		}
+		
+		Town.openStash();
+		
+		maps.forEach(function(map){
+			if(!map.getFlag(0x10) && map.quality == 6){ 
+				identified = true;
+				Town.identifyItem(map, tome);
+				
+		}});
+		
+		if (identified){	
+			return true;
+		}
 		
 		return false;
-		
 	};
-
+	
 	this.upgradeMaps = function () {
-		var map, maps, roll, minGold,
+		var map, maps, roll, tome, minGold,
 			ids = Config.Mapper.Maps,
 			mapids = [];
 			
-		if(!me.getQuest(35, 0)){ // Orbs cost more if Siege quest isn't done
+		if (!me.getQuest(35, 0)){ // Orbs cost more if Siege quest isn't done
 			minGold = 400000;
 		} else {
 			minGold = 200000;
-		}			
-			
-		if (!me.getQuest(37, 0)) { // Check Anya Quest
-			print("Anya quest incomplete!");
-			return false;
-		}			
+		}						
 		
-		if (!this.buildRecipes("Rune")){ // Check if we have low runes
+		if (!this.buildRecipes("Rune") || !this.shopAnya()){ // Prerequisite Check
 			return false;
-		}		
+		}	
 		
 		for (var i = 0; i < ids.length; i++){ 
 			mapids.push(NTIPAliasClassID[ids[i]]);
 		}
 		
+ 		maps = me.findItems(-1, 0).filter( function(x) { return mapids.indexOf(x.classid) > -1});
+		
+		if (this.identifyMaps(maps)){
+			this.start();
+		};
+
 		if (me.getStat(14) + me.getStat(15) > minGold){
-			maps = me.findItems(-1, 0).filter( function(x) { return mapids.indexOf(x.classid) > -1 && !this.checkMap(x)});
+			maps = maps.filter( function(x) { return !this.checkMap(x) });
 		} else {
 			print("ÿc8Upgrading maps requiresÿc7 gold.ÿc8 Get your shit together!");
 			return false;
@@ -72,7 +95,7 @@ function Mapper() {
 			
 			print("ÿc7We have maps! ÿc2 Lets try upgrading...");
 			
- 			while(maps.length > 0) {
+ 			while (maps.length > 0) {
 				map = maps.shift()
 				
 				if (this.buildRecipes("Item", map.quality)){
@@ -80,20 +103,21 @@ function Mapper() {
 					
 					switch(map.quality){
 						case 2: // Normal > Rare
-							Config.Recipes.push([Recipe.Map.Normal, map.classid, this.buildRecipes("Rune"),
-							this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
+						Config.Recipes.push([Recipe.Map.Normal, map.classid, this.buildRecipes("Rune"),
+						this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
 						
 						break;
 						case 4: //Magic > Rare
-							Config.Recipes.push([Recipe.Map.Magic, map.classid, this.buildRecipes("Rune"),
-							this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
+						Config.Recipes.push([Recipe.Map.Magic, map.classid, this.buildRecipes("Rune"),
+						this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
 						
 						break;
 						case 6: //Re-roll
-							Config.Recipes.push([Recipe.Map.Rare, map.classid, this.buildRecipes("Rune"),
-							this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
+						Config.Recipes.push([Recipe.Map.Rare, map.classid, this.buildRecipes("Rune"),
+						this.buildRecipes("Item", map.quality), this.buildRecipes("Orb", map.quality)]);
 						
 						break;
+						
 					}
 					
 				print("ÿc2Upgrading ÿc0" + map.name);	
@@ -104,8 +128,8 @@ function Mapper() {
 			print("ÿc8No maps found to upgrade");
 			return false;
 		}
-							
-		if(roll){
+			
+		if (roll){
 			Cubing.buildRecipes();
 			Cubing.update();
 			Town.doChores();
@@ -119,23 +143,30 @@ function Mapper() {
 	this.shopAnya = function (orb){
 		var anya,
 			gold = me.getStat(14) + me.getStat(15);
-		
-		Town.goToTown(5);
-		Town.move(NPC.Anya);
-		anya = getUnit(1, NPC.Anya);
-		anya.startTrade();
-		orb = anya.getItem(orb, 0);
-		
-		if (gold < orb.getItemCost(0)){
-			print("ÿc8Not enough gold for " + orb.name);
+			
+		if (!me.getQuest(37, 0)) { // Check Anya Quest
+			print("Anya quest incomplete!");
 			return false;
+		}			
+		
+		if (orb){
+			Town.goToTown(5);
+			Town.move(NPC.Anya);
+			anya = getUnit(1, NPC.Anya);
+			anya.startTrade();
+			orb = anya.getItem(orb, 0);
+			
+			if (gold < orb.getItemCost(0)){
+				print("ÿc8Not enough gold for " + orb.name);
+				return false;
+			}
+			
+			if (orb.buy()) {
+				return orb.classid;
+			};
 		}
 		
-		if (orb.buy()) {
-			return orb.classid;
-		};
-		
-		return -1;
+		return true;
 	};
 	
 	this.buildRecipes = function(type, mapquality){
@@ -172,7 +203,7 @@ function Mapper() {
 					break;
 					case 4:
 						if (me.getItem(682)){
-							return 682
+							return 682;
 						}
 						print("ÿc8No Perfect Skulls upgrade ÿc3magic map");					
 						return false;
@@ -223,75 +254,25 @@ function Mapper() {
 	};
 	
 	this.killBoss = function () { 
-		var boss, bossPreset;
+		var bossPreset, bossId, bossUnit;
 		
 		bossPreset = [746, 750, 755, 800, 809, 826, 861, 870, 879, 882, 883, 884];
-		boss = bossPreset.find( unit => getPresetUnit(me.area, 1, unit));
+		bossId = bossPreset.find( unit => getPresetUnit(me.area, 1, unit));
+		bossUnit = getPresetUnit(me.area, 1, bossId);
 		
-		Pather.moveToPreset(me.area, 1, boss, 0, 0, true, false);
-		Attack.clear(30, 0, boss);
+		while (getDistance(me, bossUnit.roomx * 5 + bossUnit.x, bossUnit.roomy * 5 + bossUnit.y) > 20){
+			if (Pather.moveToPreset(me.area, 1, bossId, 0, 0, true, false)){
+				Attack.clear(40, 0, bossId);
+				}
+			else if (Pather.moveTo(bossUnit.roomx * 5, bossUnit.roomy * 5, 3, true, false)){
+				Attack.clear(40, 0, bossId);
+				}
+		}
 		
 		return true;
-	};	
-	
-	this.mapRooms = function () {
-		var room, mapRooms = [];
-		
-		/*if (me.area == 149){ // Because Bastion wants to act funny
-			Pather.moveTo(15135, 23648);
-		  }*/
-
-		room = getRoom(me.x, me.y);
-		
-		do {
-			mapRooms.push([room.x * 5 + room.xsize / 2, room.y * 5 + room.ysize / 2]);		
-		} while (room.getNext());
-
-		return mapRooms;
-	};
-	
-	this.clearMap = function () { 
-		
-		var room, result, myRoom, bossPreset,
-			rooms = this.mapRooms();
-		
-		function RoomSort(a, b) {
-			return getDistance(myRoom[0], myRoom[1], a[0], a[1]) - getDistance(myRoom[0], myRoom[1], b[0], b[1]);
-		}
-
-		while (rooms.length > 0) {
-			// get the first room + initialize myRoom var
-			if (!myRoom) {
-				room = getRoom(me.x, me.y);
-			}
-
-			if (room) {
-				if (room instanceof Array) { // use previous room to calculate distance
-					myRoom = [room[0], room[1]];
-				} else { // create a new room to calculate distance (first room, done only once)
-					myRoom = [room.x * 5 + room.xsize / 2, room.y * 5 + room.ysize / 2];
-				}
-			}
-
-			rooms.sort(RoomSort);
-			room = rooms.shift();
-
-			result = Pather.getNearestWalkable(room[0], room[1], 10, 2);
-
-			if (result) {
-				Pather.moveTo(result[0], result[1], 3);
-
-				if (!Attack.clear(30)) {
-					return false;
-				}
-			}
-		}
-
-		return true;
-	}; 
+	};	 
 	
 	this.checkMap = function(map){
-		
 		 const MonsterTypes = { "Dolls":      437,
 								"Succubus":   438,
 								"Vampires":   439,
@@ -304,9 +285,8 @@ function Mapper() {
 								"Lightning":  398,
 								"Fire":		  399  };
 								
-
-		for(var config in Config.Mapper){
-			switch(config){
+		for (var config in Config.Mapper){
+			switch (config){
  				case "Maps":
 					var mapids = [];
 					for(var i = 0; i < Config.Mapper[config].length; i++){
@@ -374,6 +354,8 @@ function Mapper() {
 							}
 						}
 					}
+					
+					break;
 				case "SorbSkip":
 					var currentStat = Config.Mapper[config];
 					for (var i = 0; i < currentStat.length; i++){
@@ -395,9 +377,11 @@ function Mapper() {
 		
 		Town.goToTown(5);
 		Town.openStash();
+		
 		if (map.location == 7){
 			Storage.Inventory.MoveTo(map);
 		}
+		
 		Pather.moveTo(5098, 5020);
 		clickItem(1, map);
 		delay(200 + me.ping);
@@ -425,6 +409,7 @@ function Mapper() {
 	};
 
 	// start
+	Town.doChores();
 	this.start();
 	print("Ending Map Script.");
 	return true;
