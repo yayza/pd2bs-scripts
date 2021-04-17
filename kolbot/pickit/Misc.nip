@@ -160,6 +160,4 @@
 [Name] == primeevilsoul
 
 //MAPS
-//[Name] == tieronemap && [Quality] == Rare
-//[Name] == tiertwomap && [Quality] == Rare
-//[Name] == tierthreemap && [Quality] == Rare
+[type] >= t1map && [type] <= t3map
